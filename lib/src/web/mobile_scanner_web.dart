@@ -256,6 +256,10 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
     final capabilities = mediaDevices.getSupportedConstraints();
 
+    // Request high resolution for better barcode detection.
+    final width = ConstrainULongRange(ideal: 1920);
+    final height = ConstrainULongRange(ideal: 1080);
+
     var useStoredDevice = false;
     final MediaStreamConstraints constraints;
 
@@ -268,16 +272,26 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
       constraints = useStoredDevice
           ? MediaStreamConstraints(
-              video: MediaTrackConstraintSet(deviceId: storedDeviceId.toJS),
+              video: MediaTrackConstraintSet(
+                deviceId: storedDeviceId.toJS,
+                width: width,
+                height: height,
+              ),
             )
-          : MediaStreamConstraints(video: true.toJS);
+          : MediaStreamConstraints(
+              video: MediaTrackConstraintSet(width: width, height: height),
+            );
     } else {
       // facingMode is supported (mobile). Always use it so that switching
       // between front and back cameras works correctly.
       final facingMode = _settingsDelegate.getFacingMode(cameraDirection);
 
       constraints = MediaStreamConstraints(
-        video: MediaTrackConstraintSet(facingMode: facingMode.toJS),
+        video: MediaTrackConstraintSet(
+          facingMode: facingMode.toJS,
+          width: width,
+          height: height,
+        ),
       );
     }
 
