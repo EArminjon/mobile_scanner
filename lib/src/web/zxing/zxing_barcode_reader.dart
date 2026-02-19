@@ -5,11 +5,13 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/src/enums/barcode_format.dart';
 import 'package:mobile_scanner/src/mobile_scanner_exception.dart';
+import 'package:mobile_scanner/src/objects/barcode.dart';
 import 'package:mobile_scanner/src/objects/barcode_capture.dart';
 import 'package:mobile_scanner/src/objects/start_options.dart';
 import 'package:mobile_scanner/src/web/barcode_reader.dart';
 import 'package:mobile_scanner/src/web/javascript_map.dart';
 import 'package:mobile_scanner/src/web/media_track_constraints_delegate.dart';
+import 'package:mobile_scanner/src/web/media_track_extension.dart';
 import 'package:mobile_scanner/src/web/zxing/result.dart';
 import 'package:mobile_scanner/src/web/zxing/zxing_browser_multi_format_reader.dart';
 import 'package:mobile_scanner/src/web/zxing/zxing_exception.dart';
@@ -103,6 +105,49 @@ final class ZXingBarcodeReader extends BarcodeReader {
     }
   }
 
+  /// Returns true if the video preview is currently mirrored horizontally,
+  /// meaning barcode corner coordinates must be flipped to match.
+  ///
+  /// Must stay in sync with the logic in `_maybeFlipVideoPreview`.
+  bool _shouldMirrorX() {
+    final tracks = videoStream?.getVideoTracks().toDart;
+
+    if (tracks == null || tracks.isEmpty) {
+      return false;
+    }
+
+    final facingMode = tracks.first.getSettings().facingModeNullable?.toDart;
+
+    // Mirror when facingMode is 'user' (front camera on mobile), or when
+    // facingMode is null (desktop — cameras always face the user).
+    return facingMode == 'user' || facingMode == null;
+  }
+
+  /// Returns a copy of [barcode] with all corner x-coordinates mirrored
+  /// relative to [videoWidth].
+  Barcode _mirrorBarcodeX(Barcode barcode, double videoWidth) {
+    final corners = barcode.corners;
+
+    if (corners.isEmpty) {
+      return barcode;
+    }
+
+    return Barcode(
+      corners: corners
+          .map((c) => Offset(videoWidth - c.dx, c.dy))
+          .toList(),
+      format: barcode.format,
+      displayValue: barcode.displayValue,
+      // Populate deprecated rawBytes for backward compatibility.
+      // ignore: deprecated_member_use_from_same_package
+      rawBytes: barcode.rawBytes,
+      rawDecodedBytes: barcode.rawDecodedBytes,
+      rawValue: barcode.rawValue,
+      size: barcode.size,
+      type: barcode.type,
+    );
+  }
+
   @override
   Stream<BarcodeCapture> detectBarcodes() {
     final controller = StreamController<BarcodeCapture>();
@@ -124,8 +169,14 @@ final class ZXingBarcodeReader extends BarcodeReader {
             }
 
             if (result != null) {
+              var barcode = result.toBarcode;
+
+              if (_shouldMirrorX()) {
+                barcode = _mirrorBarcodeX(barcode, videoSize.width);
+              }
+
               controller.add(
-                BarcodeCapture(barcodes: [result.toBarcode], size: videoSize),
+                BarcodeCapture(barcodes: [barcode], size: videoSize),
               );
             }
           }.toJS,
