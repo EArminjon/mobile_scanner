@@ -132,10 +132,20 @@ final class ZXingBarcodeReader extends BarcodeReader {
       return barcode;
     }
 
+    // Mirror each x-coordinate.
+    final mirrored = corners
+        .map((c) => Offset(videoWidth - c.dx, c.dy))
+        .toList();
+
+    // Mirroring x reverses the clockwise winding order from
+    // [TL, TR, BR, BL] to [TR_m, TL_m, BL_m, BR_m].
+    // Swap TL↔TR and BL↔BR to restore [TL_m, TR_m, BR_m, BL_m].
+    final reordered = mirrored.length == 4
+        ? [mirrored[1], mirrored[0], mirrored[3], mirrored[2]]
+        : mirrored;
+
     return Barcode(
-      corners: corners
-          .map((c) => Offset(videoWidth - c.dx, c.dy))
-          .toList(),
+      corners: reordered,
       format: barcode.format,
       displayValue: barcode.displayValue,
       // Populate deprecated rawBytes for backward compatibility.
