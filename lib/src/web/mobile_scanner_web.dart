@@ -61,6 +61,10 @@ class MobileScannerWeb extends MobileScannerPlatform {
   /// The video element for the camera view.
   late HTMLVideoElement _videoElement;
 
+  /// The localStorage key used to persist the preferred camera device ID.
+  static const String _kPreferredDeviceIdKey =
+      'mobile_scanner_preferred_device_id';
+
   /// Get the view type for the platform view factory.
   String _getViewType(int textureId) => 'mobile-scanner-view-$textureId';
 
@@ -131,26 +135,102 @@ class MobileScannerWeb extends MobileScannerPlatform {
   }
 
   /// Flip the [videoElement] horizontally,
-  /// if the [videoStream] indicates that is facing the user.
+  /// if the camera is facing the user.
   void _maybeFlipVideoPreview(
     HTMLVideoElement videoElement,
     MediaStream videoStream,
+    CameraFacing cameraDirection,
   ) {
-    final settings = _settingsDelegate.getSettings(videoStream);
+    final tracks = videoStream.getVideoTracks().toDart;
 
-    // First try checking the facing mode.
-    if (settings?.facingModeNullable?.toDart == 'user') {
-      videoElement.style.transform = 'scaleX(-1)';
-
+    if (tracks.isEmpty) {
       return;
     }
 
-    final videoTrack = videoStream.getVideoTracks().toDart.first;
+    // On mobile browsers, the facing mode is reliably reported in settings.
+    // On desktop browsers, facingMode is never reported (null), because desktop
+    // cameras have no hardware facing mode. Fall back to the requested
+    // camera direction instead.
+    final facingMode = tracks.first.getSettings().facingModeNullable?.toDart;
 
-    // On MacOS, even though the facing mode is supported, it is not reported.
-    // Use the label for FaceTime cameras to detect the user facing webcam.
-    if (videoTrack.label.contains('FaceTime')) {
+    if (facingMode == 'user' ||
+        (facingMode == null)) {
       videoElement.style.transform = 'scaleX(-1)';
+    }
+  }
+
+  /// Apply focus, exposure and white-balance constraints to [track] if the
+  /// browser supports them (part of the Image Capture API).
+  ///
+  /// Silently ignores any errors — these constraints are best-effort.
+  Future<void> _applyFocusConstraints(MediaStreamTrack track) async {
+    try {
+      final caps = track.getCapabilities();
+      var hasConstraints = false;
+
+      final constraints = MediaTrackConstraints();
+
+      final focusModes =
+          caps.focusMode.toDart.map((e) => e.toDart).toList();
+      if (focusModes.contains('continuous')) {
+        constraints.focusMode = 'continuous'.toJS;
+        hasConstraints = true;
+      } else if (focusModes.contains('single-shot')) {
+        constraints.focusMode = 'single-shot'.toJS;
+        hasConstraints = true;
+      }
+
+      final exposureModes =
+          caps.exposureMode.toDart.map((e) => e.toDart).toList();
+      if (exposureModes.contains('continuous')) {
+        constraints.exposureMode = 'continuous'.toJS;
+        hasConstraints = true;
+      }
+
+      final wbModes =
+          caps.whiteBalanceMode.toDart.map((e) => e.toDart).toList();
+      if (wbModes.contains('continuous')) {
+        constraints.whiteBalanceMode = 'continuous'.toJS;
+        hasConstraints = true;
+      }
+
+      if (!hasConstraints) return;
+
+      await track.applyConstraints(constraints).toDart;
+    } on Object catch (_) {
+      // Not supported on this browser or device.
+    }
+  }
+
+  /// Return the preferred camera device ID stored in localStorage, or null.
+  String? _getStoredDeviceId() {
+    try {
+      return window.localStorage.getItem(_kPreferredDeviceIdKey);
+    } on Object catch (_) {
+      return null;
+    }
+  }
+
+  /// Persist [deviceId] to localStorage for use on the next start.
+  void _storeDeviceId(String deviceId) {
+    try {
+      window.localStorage.setItem(_kPreferredDeviceIdKey, deviceId);
+    } on Object catch (_) {
+      // Ignore — e.g. Safari private browsing mode disables storage.
+    }
+  }
+
+  /// Validate that [deviceId] refers to a currently available video input.
+  Future<bool> _isValidDeviceId(String deviceId) async {
+    try {
+      final devices =
+          (await window.navigator.mediaDevices.enumerateDevices().toDart)
+              .toDart;
+      return devices.any(
+        (d) => d.kind == 'videoinput' && d.deviceId == deviceId,
+      );
+    } on Object catch (_) {
+      return false;
     }
   }
 
@@ -176,11 +256,24 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
     final capabilities = mediaDevices.getSupportedConstraints();
 
+    var useStoredDevice = false;
     final MediaStreamConstraints constraints;
 
     if (capabilities.isUndefinedOrNull || !capabilities.facingMode) {
-      constraints = MediaStreamConstraints(video: true.toJS);
+      // facingMode is not supported (desktop). Try to reuse the previously
+      // chosen device to keep the same camera across restarts.
+      final storedDeviceId = _getStoredDeviceId();
+      useStoredDevice =
+          storedDeviceId != null && await _isValidDeviceId(storedDeviceId);
+
+      constraints = useStoredDevice
+          ? MediaStreamConstraints(
+              video: MediaTrackConstraintSet(deviceId: storedDeviceId.toJS),
+            )
+          : MediaStreamConstraints(video: true.toJS);
     } else {
+      // facingMode is supported (mobile). Always use it so that switching
+      // between front and back cameras works correctly.
       final facingMode = _settingsDelegate.getFacingMode(cameraDirection);
 
       constraints = MediaStreamConstraints(
@@ -193,8 +286,20 @@ class MobileScannerWeb extends MobileScannerPlatform {
       final videoStream =
           await mediaDevices.getUserMedia(constraints).toDart;
 
+      // Apply focus, exposure and white-balance constraints if supported.
+      final videoTrack = videoStream.getVideoTracks().toDart.firstOrNull;
+      if (videoTrack != null) {
+        await _applyFocusConstraints(videoTrack);
+
+        // Persist the device ID so the same camera is preferred next time.
+        final deviceId = videoTrack.getSettings().deviceIdNullable?.toDart;
+        if (deviceId != null) _storeDeviceId(deviceId);
+      }
+
       return videoStream;
     } on DOMException catch (error, stackTrace) {
+      // If the stored device ID failed, clear it so we don't retry it.
+      if (useStoredDevice) _storeDeviceId('');
       final errorMessage = error.toString();
 
       var errorCode = MobileScannerErrorCode.genericError;
@@ -342,7 +447,11 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
       _videoElement = _createVideoElement(_textureId);
 
-      _maybeFlipVideoPreview(_videoElement, videoStream);
+      _maybeFlipVideoPreview(
+        _videoElement,
+        videoStream,
+        startOptions.cameraDirection,
+      );
 
       await _barcodeReader?.start(
         startOptions,

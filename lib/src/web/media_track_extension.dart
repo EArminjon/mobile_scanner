@@ -24,4 +24,8 @@ extension NullableMediaTrackSettings on MediaTrackSettings {
   /// even though the capability is supported.
   @JS('facingMode')
   external JSString? get facingModeNullable;
+
+  /// The `deviceId` of the source device for this track.
+  @JS('deviceId')
+  external JSString? get deviceIdNullable;
 }

@@ -1,3 +1,10 @@
+## NEXT
+
+**Improvements**
+
+* [Web] The preferred camera device ID is now persisted in localStorage and reused on the next start.
+* [Web] Focus, exposure, and white-balance constraints are now applied automatically when supported by the browser (Image Capture API).
+
 ## 7.2.0
 
 **Highlights**
