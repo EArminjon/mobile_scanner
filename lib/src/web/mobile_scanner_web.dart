@@ -162,7 +162,9 @@ class MobileScannerWeb extends MobileScannerPlatform {
   /// or if using a video stream, with the given set of constraints, is
   /// unsupported.
   Future<MediaStream> _prepareVideoStream(CameraFacing cameraDirection) async {
-    if (window.navigator.mediaDevices.isUndefinedOrNull) {
+    final mediaDevices = window.navigator.mediaDevicesNullable;
+
+    if (mediaDevices == null) {
       throw const MobileScannerException(
         errorCode: MobileScannerErrorCode.unsupported,
         errorDetails: MobileScannerErrorDetails(
@@ -172,8 +174,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
       );
     }
 
-    final capabilities =
-        window.navigator.mediaDevices.getSupportedConstraints();
+    final capabilities = mediaDevices.getSupportedConstraints();
 
     final MediaStreamConstraints constraints;
 
@@ -190,7 +191,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
     try {
       // Retrieving the media devices requests the camera permission.
       final videoStream =
-          await window.navigator.mediaDevices.getUserMedia(constraints).toDart;
+          await mediaDevices.getUserMedia(constraints).toDart;
 
       return videoStream;
     } on DOMException catch (error, stackTrace) {
@@ -235,13 +236,14 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
   @override
   Future<Set<CameraLensType>> getSupportedLenses() async {
-    if (window.navigator.mediaDevices.isUndefinedOrNull) {
+    final mediaDevices = window.navigator.mediaDevicesNullable;
+
+    if (mediaDevices == null) {
       return <CameraLensType>{};
     }
 
     try {
-      final jsDevices =
-          await window.navigator.mediaDevices.enumerateDevices().toDart;
+      final jsDevices = await mediaDevices.enumerateDevices().toDart;
       final devices = jsDevices.toDart;
 
       final hasVideoInput = devices.any(
