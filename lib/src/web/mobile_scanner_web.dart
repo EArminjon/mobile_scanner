@@ -239,7 +239,10 @@ class MobileScannerWeb extends MobileScannerPlatform {
   /// Throws a [MobileScannerException] if the permission was denied,
   /// or if using a video stream, with the given set of constraints, is
   /// unsupported.
-  Future<MediaStream> _prepareVideoStream(CameraFacing cameraDirection) async {
+  Future<MediaStream> _prepareVideoStream(
+    CameraFacing cameraDirection, {
+    Size? cameraResolution,
+  }) async {
     final mediaDevices = window.navigator.mediaDevicesNullable;
 
     if (mediaDevices == null) {
@@ -254,9 +257,12 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
     final capabilities = mediaDevices.getSupportedConstraints();
 
-    // Request high resolution for better barcode detection.
-    final width = ConstrainULongRange(ideal: 1920);
-    final height = ConstrainULongRange(ideal: 1080);
+    final width = ConstrainULongRange(
+      ideal: cameraResolution?.width.toInt() ?? 1920,
+    );
+    final height = ConstrainULongRange(
+      ideal: cameraResolution?.height.toInt() ?? 1080,
+    );
 
     var useStoredDevice = false;
     final MediaStreamConstraints constraints;
@@ -442,7 +448,10 @@ class MobileScannerWeb extends MobileScannerPlatform {
     );
 
     // Request camera permissions and prepare the video stream.
-    final videoStream = await _prepareVideoStream(startOptions.cameraDirection);
+    final videoStream = await _prepareVideoStream(
+      startOptions.cameraDirection,
+      cameraResolution: startOptions.cameraResolution,
+    );
 
     try {
       // Clear the existing barcodes.
