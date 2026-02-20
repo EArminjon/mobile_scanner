@@ -153,8 +153,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
     // camera direction instead.
     final facingMode = tracks.first.getSettings().facingModeNullable?.toDart;
 
-    if (facingMode == 'user' ||
-        (facingMode == null)) {
+    if (facingMode == 'user' || (facingMode == null)) {
       videoElement.style.transform = 'scaleX(-1)';
     }
   }
@@ -170,8 +169,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
       final constraints = MediaTrackConstraints();
 
-      final focusModes =
-          caps.focusMode.toDart.map((e) => e.toDart).toList();
+      final focusModes = caps.focusMode.toDart.map((e) => e.toDart).toList();
       if (focusModes.contains('continuous')) {
         constraints.focusMode = 'continuous'.toJS;
         hasConstraints = true;
@@ -270,17 +268,18 @@ class MobileScannerWeb extends MobileScannerPlatform {
       useStoredDevice =
           storedDeviceId != null && await _isValidDeviceId(storedDeviceId);
 
-      constraints = useStoredDevice
-          ? MediaStreamConstraints(
-              video: MediaTrackConstraintSet(
-                deviceId: storedDeviceId.toJS,
-                width: width,
-                height: height,
-              ),
-            )
-          : MediaStreamConstraints(
-              video: MediaTrackConstraintSet(width: width, height: height),
-            );
+      constraints =
+          useStoredDevice
+              ? MediaStreamConstraints(
+                video: MediaTrackConstraintSet(
+                  deviceId: storedDeviceId.toJS,
+                  width: width,
+                  height: height,
+                ),
+              )
+              : MediaStreamConstraints(
+                video: MediaTrackConstraintSet(width: width, height: height),
+              );
     } else {
       // facingMode is supported (mobile). Always use it so that switching
       // between front and back cameras works correctly.
@@ -297,8 +296,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
     try {
       // Retrieving the media devices requests the camera permission.
-      final videoStream =
-          await mediaDevices.getUserMedia(constraints).toDart;
+      final videoStream = await mediaDevices.getUserMedia(constraints).toDart;
 
       // Apply focus, exposure and white-balance constraints if supported.
       final videoTrack = videoStream.getVideoTracks().toDart.firstOrNull;
