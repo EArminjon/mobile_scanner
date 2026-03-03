@@ -185,7 +185,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
   String? _getStoredDeviceId() {
     try {
       return window.localStorage.getItem(_kPreferredDeviceIdKey);
-    } on Object catch (_) {
+    } on DOMException catch (_) {
       return null;
     }
   }
@@ -194,7 +194,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
   void _storeDeviceId(String deviceId) {
     try {
       window.localStorage.setItem(_kPreferredDeviceIdKey, deviceId);
-    } on Object catch (_) {
+    } on DOMException catch (_) {
       // Ignore — e.g. Safari private browsing mode disables storage.
     }
   }
@@ -208,7 +208,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
       return devices.any(
         (d) => d.kind == 'videoinput' && d.deviceId == deviceId,
       );
-    } on Object catch (_) {
+    } on DOMException catch (_) {
       return false;
     }
   }
