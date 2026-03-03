@@ -281,7 +281,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
       return videoStream;
     } on DOMException catch (error, stackTrace) {
       // If the stored device ID failed, clear it so we don't retry it.
-      if (useStoredDevice) _preferredDeviceStorage.write('');
+      if (useStoredDevice) _preferredDeviceStorage.remove();
       final errorMessage = error.toString();
 
       var errorCode = MobileScannerErrorCode.genericError;

@@ -17,11 +17,18 @@ class PreferredDeviceStorage {
   }
 
   /// Persists [deviceId] for use on the next start.
-  ///
-  /// Pass an empty string to clear the stored value.
   void write(String deviceId) {
     try {
       window.localStorage.setItem(_kKey, deviceId);
+    } on DOMException catch (_) {
+      // Ignore, e.g. Safari private browsing mode disables storage.
+    }
+  }
+
+  /// Removes the stored device ID.
+  void remove() {
+    try {
+      window.localStorage.removeItem(_kKey);
     } on DOMException catch (_) {
       // Ignore, e.g. Safari private browsing mode disables storage.
     }
