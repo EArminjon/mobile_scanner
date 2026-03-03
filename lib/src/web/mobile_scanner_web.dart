@@ -139,7 +139,6 @@ class MobileScannerWeb extends MobileScannerPlatform {
     _settingsController.add(settings);
   }
 
-
   /// Apply focus, exposure, and white-balance constraints to [track] if the
   /// browser supports them (part of the Image Capture API).
   ///
@@ -167,8 +166,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
         hasConstraints = true;
       }
 
-      final wbModes =
-          caps.whiteBalanceMode.toDart.map((e) => e.toDart).toSet();
+      final wbModes = caps.whiteBalanceMode.toDart.map((e) => e.toDart).toSet();
       if (wbModes.contains(_kModeContinuous)) {
         constraints.whiteBalanceMode = _kModeContinuous.toJS;
         hasConstraints = true;
