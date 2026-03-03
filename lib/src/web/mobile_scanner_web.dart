@@ -17,6 +17,7 @@ import 'package:mobile_scanner/src/objects/start_options.dart';
 import 'package:mobile_scanner/src/web/barcode_reader.dart';
 import 'package:mobile_scanner/src/web/media_track_constraints_delegate.dart';
 import 'package:mobile_scanner/src/web/media_track_extension.dart';
+import 'package:mobile_scanner/src/web/web_camera_utility.dart';
 import 'package:mobile_scanner/src/web/zxing/zxing_barcode_reader.dart';
 import 'package:web/web.dart';
 
@@ -134,29 +135,6 @@ class MobileScannerWeb extends MobileScannerPlatform {
     _settingsController.add(settings);
   }
 
-  /// Flip the [videoElement] horizontally,
-  /// if the camera is facing the user.
-  void _maybeFlipVideoPreview(
-    HTMLVideoElement videoElement,
-    MediaStream videoStream,
-    CameraFacing cameraDirection,
-  ) {
-    final tracks = videoStream.getVideoTracks().toDart;
-
-    if (tracks.isEmpty) {
-      return;
-    }
-
-    // On mobile browsers, the facing mode is reliably reported in settings.
-    // On desktop browsers, facingMode is never reported (null), because desktop
-    // cameras have no hardware facing mode. Fall back to the requested
-    // camera direction instead.
-    final facingMode = tracks.first.getSettings().facingModeNullable?.toDart;
-
-    if (facingMode == 'user' || facingMode == null) {
-      videoElement.style.transform = 'scaleX(-1)';
-    }
-  }
 
   /// Apply focus, exposure and white-balance constraints to [track] if the
   /// browser supports them (part of the Image Capture API).
@@ -468,11 +446,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
       _videoElement = _createVideoElement(_textureId);
 
-      _maybeFlipVideoPreview(
-        _videoElement,
-        videoStream,
-        startOptions.cameraDirection,
-      );
+      maybeFlipVideoPreview(_videoElement, videoStream);
 
       await _barcodeReader?.start(
         startOptions,
