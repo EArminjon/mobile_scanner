@@ -140,11 +140,11 @@ class MobileScannerWeb extends MobileScannerPlatform {
   }
 
 
-  /// Apply focus, exposure and white-balance constraints to [track] if the
+  /// Apply focus, exposure, and white-balance constraints to [track] if the
   /// browser supports them (part of the Image Capture API).
   ///
   /// Silently ignores any errors — these constraints are best-effort.
-  Future<void> _applyFocusConstraints(MediaStreamTrack track) async {
+  Future<void> _applyVideoConstraints(MediaStreamTrack track) async {
     try {
       final caps = track.getCapabilities();
       var hasConstraints = false;
@@ -271,7 +271,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
       // Apply focus, exposure and white-balance constraints if supported.
       final videoTrack = videoStream.getVideoTracks().toDart.firstOrNull;
       if (videoTrack != null) {
-        await _applyFocusConstraints(videoTrack);
+        await _applyVideoConstraints(videoTrack);
 
         // Persist the device ID so the same camera is preferred next time.
         final deviceId = videoTrack.getSettings().deviceIdNullable?.toDart;
