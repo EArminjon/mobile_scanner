@@ -153,7 +153,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
     // camera direction instead.
     final facingMode = tracks.first.getSettings().facingModeNullable?.toDart;
 
-    if (facingMode == 'user' || (facingMode == null)) {
+    if (facingMode == 'user' || facingMode == null) {
       videoElement.style.transform = 'scaleX(-1)';
     }
   }
