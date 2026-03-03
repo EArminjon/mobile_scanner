@@ -17,6 +17,7 @@ import 'package:mobile_scanner/src/objects/start_options.dart';
 import 'package:mobile_scanner/src/web/barcode_reader.dart';
 import 'package:mobile_scanner/src/web/media_track_constraints_delegate.dart';
 import 'package:mobile_scanner/src/web/media_track_extension.dart';
+import 'package:mobile_scanner/src/web/preferred_device_storage.dart';
 import 'package:mobile_scanner/src/web/web_camera_utility.dart';
 import 'package:mobile_scanner/src/web/zxing/zxing_barcode_reader.dart';
 import 'package:web/web.dart';
@@ -65,9 +66,9 @@ class MobileScannerWeb extends MobileScannerPlatform {
   /// The video element for the camera view.
   late HTMLVideoElement _videoElement;
 
-  /// The localStorage key used to persist the preferred camera device ID.
-  static const String _kPreferredDeviceIdKey =
-      'mobile_scanner_preferred_device_id';
+  /// Storage for the preferred camera device ID across sessions.
+  final PreferredDeviceStorage _preferredDeviceStorage =
+      const PreferredDeviceStorage();
 
   /// Get the view type for the platform view factory.
   String _getViewType(int textureId) => 'mobile-scanner-view-$textureId';
@@ -181,24 +182,6 @@ class MobileScannerWeb extends MobileScannerPlatform {
     }
   }
 
-  /// Return the preferred camera device ID stored in localStorage, or null.
-  String? _getStoredDeviceId() {
-    try {
-      return window.localStorage.getItem(_kPreferredDeviceIdKey);
-    } on DOMException catch (_) {
-      return null;
-    }
-  }
-
-  /// Persist [deviceId] to localStorage for use on the next start.
-  void _storeDeviceId(String deviceId) {
-    try {
-      window.localStorage.setItem(_kPreferredDeviceIdKey, deviceId);
-    } on DOMException catch (_) {
-      // Ignore — e.g. Safari private browsing mode disables storage.
-    }
-  }
-
   /// Validate that [deviceId] refers to a currently available video input.
   Future<bool> _isValidDeviceId(String deviceId) async {
     try {
@@ -251,7 +234,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
     if (capabilities.isUndefinedOrNull || !capabilities.facingMode) {
       // facingMode is not supported (desktop). Try to reuse the previously
       // chosen device to keep the same camera across restarts.
-      final storedDeviceId = _getStoredDeviceId();
+      final storedDeviceId = _preferredDeviceStorage.read();
       useStoredDevice =
           storedDeviceId != null && await _isValidDeviceId(storedDeviceId);
 
@@ -292,13 +275,13 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
         // Persist the device ID so the same camera is preferred next time.
         final deviceId = videoTrack.getSettings().deviceIdNullable?.toDart;
-        if (deviceId != null) _storeDeviceId(deviceId);
+        if (deviceId != null) _preferredDeviceStorage.write(deviceId);
       }
 
       return videoStream;
     } on DOMException catch (error, stackTrace) {
       // If the stored device ID failed, clear it so we don't retry it.
-      if (useStoredDevice) _storeDeviceId('');
+      if (useStoredDevice) _preferredDeviceStorage.write('');
       final errorMessage = error.toString();
 
       var errorCode = MobileScannerErrorCode.genericError;
