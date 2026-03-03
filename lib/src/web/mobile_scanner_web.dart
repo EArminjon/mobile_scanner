@@ -27,6 +27,9 @@ class MobileScannerWeb extends MobileScannerPlatform {
   /// Constructs a [MobileScannerWeb] instance.
   MobileScannerWeb();
 
+  static const String _kModeContinuous = 'continuous';
+  static const String _kModeSingleShot = 'single-shot';
+
   /// The alternate script url for the barcode library.
   String? _alternateScriptUrl;
 
@@ -148,25 +151,25 @@ class MobileScannerWeb extends MobileScannerPlatform {
       final constraints = MediaTrackConstraints();
 
       final focusModes = caps.focusMode.toDart.map((e) => e.toDart).toList();
-      if (focusModes.contains('continuous')) {
-        constraints.focusMode = 'continuous'.toJS;
+      if (focusModes.contains(_kModeContinuous)) {
+        constraints.focusMode = _kModeContinuous.toJS;
         hasConstraints = true;
-      } else if (focusModes.contains('single-shot')) {
-        constraints.focusMode = 'single-shot'.toJS;
+      } else if (focusModes.contains(_kModeSingleShot)) {
+        constraints.focusMode = _kModeSingleShot.toJS;
         hasConstraints = true;
       }
 
       final exposureModes =
           caps.exposureMode.toDart.map((e) => e.toDart).toList();
-      if (exposureModes.contains('continuous')) {
-        constraints.exposureMode = 'continuous'.toJS;
+      if (exposureModes.contains(_kModeContinuous)) {
+        constraints.exposureMode = _kModeContinuous.toJS;
         hasConstraints = true;
       }
 
       final wbModes =
           caps.whiteBalanceMode.toDart.map((e) => e.toDart).toList();
-      if (wbModes.contains('continuous')) {
-        constraints.whiteBalanceMode = 'continuous'.toJS;
+      if (wbModes.contains(_kModeContinuous)) {
+        constraints.whiteBalanceMode = _kModeContinuous.toJS;
         hasConstraints = true;
       }
 
