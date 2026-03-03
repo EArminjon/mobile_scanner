@@ -150,7 +150,7 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
       final constraints = MediaTrackConstraints();
 
-      final focusModes = caps.focusMode.toDart.map((e) => e.toDart).toList();
+      final focusModes = caps.focusMode.toDart.map((e) => e.toDart).toSet();
       if (focusModes.contains(_kModeContinuous)) {
         constraints.focusMode = _kModeContinuous.toJS;
         hasConstraints = true;
@@ -160,14 +160,14 @@ class MobileScannerWeb extends MobileScannerPlatform {
       }
 
       final exposureModes =
-          caps.exposureMode.toDart.map((e) => e.toDart).toList();
+          caps.exposureMode.toDart.map((e) => e.toDart).toSet();
       if (exposureModes.contains(_kModeContinuous)) {
         constraints.exposureMode = _kModeContinuous.toJS;
         hasConstraints = true;
       }
 
       final wbModes =
-          caps.whiteBalanceMode.toDart.map((e) => e.toDart).toList();
+          caps.whiteBalanceMode.toDart.map((e) => e.toDart).toSet();
       if (wbModes.contains(_kModeContinuous)) {
         constraints.whiteBalanceMode = _kModeContinuous.toJS;
         hasConstraints = true;
