@@ -67,8 +67,8 @@ class MobileScannerWeb extends MobileScannerPlatform {
   late HTMLVideoElement _videoElement;
 
   /// Storage for the preferred camera device ID across sessions.
-  final PreferredDeviceStorage _preferredDeviceStorage =
-      const PreferredDeviceStorage();
+  static const PreferredDeviceStorage _preferredDeviceStorage =
+      PreferredDeviceStorage();
 
   /// Get the view type for the platform view factory.
   String _getViewType(int textureId) => 'mobile-scanner-view-$textureId';
@@ -273,13 +273,17 @@ class MobileScannerWeb extends MobileScannerPlatform {
 
         // Persist the device ID so the same camera is preferred next time.
         final deviceId = videoTrack.getSettings().deviceIdNullable?.toDart;
-        if (deviceId != null) _preferredDeviceStorage.write(deviceId);
+        if (deviceId != null) {
+          _preferredDeviceStorage.write(deviceId);
+        }
       }
 
       return videoStream;
     } on DOMException catch (error, stackTrace) {
       // If the stored device ID failed, clear it so we don't retry it.
-      if (useStoredDevice) _preferredDeviceStorage.remove();
+      if (useStoredDevice) {
+        _preferredDeviceStorage.remove();
+      }
       final errorMessage = error.toString();
 
       var errorCode = MobileScannerErrorCode.genericError;
