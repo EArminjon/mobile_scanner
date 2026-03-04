@@ -134,6 +134,9 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   /// The delegate that handles texture rotation corrections on Android.
   AndroidSurfaceProducerDelegate? _surfaceProducerDelegate;
 
+  /// Buffer of active camera instances
+  final Map<int, Future<void> Function()> _instances = {};
+
   /// The identifier of the current texture.
   int? _textureId;
   bool _pausing = false;
@@ -348,7 +351,11 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   }
 
   @override
-  Future<MobileScannerViewAttributes> start(StartOptions startOptions) async {
+  Future<MobileScannerViewAttributes> start(
+    int id,
+    StartOptions startOptions, {
+    required Future<void> Function() onUncover,
+  }) async {
     if (!_pausing && _textureId != null) {
       throw MobileScannerException(
         errorCode: MobileScannerErrorCode.controllerAlreadyInitialized,
@@ -357,6 +364,8 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
         ),
       );
     }
+
+    _instances[id] = onUncover;
 
     await _requestCameraPermission();
 
@@ -514,7 +523,21 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   }
 
   @override
-  Future<void> dispose() async {
+  Future<void> dispose(int id) async {
+    _instances.remove(id);
+
+    /// On native side, only one camera instance can be active, if we want
+    /// to dispose the current camera and an other one is already up, we should
+    /// not try to impact the native camera once again.
+    ///
+    /// If there is another camera instance available, let's trigger it
+    /// (stop & start) to resume the camera instance.
+    if (_instances.isNotEmpty) {
+      final last = _instances.entries.last;
+      await last.value();
+      return;
+    }
+
     await updateScanWindow(null);
     await stop();
   }

@@ -99,7 +99,11 @@ abstract class MobileScannerPlatform extends PlatformInterface {
   ///
   /// The given [StartOptions.cameraDirection] is used as the direction for the
   /// camera that needs to be set up.
-  Future<MobileScannerViewAttributes> start(StartOptions startOptions) {
+  Future<MobileScannerViewAttributes> start(
+    int id,
+    StartOptions startOptions, {
+    required Future<void> Function() onUncover,
+  }) {
     throw UnimplementedError('start() has not been implemented.');
   }
 
@@ -143,7 +147,7 @@ abstract class MobileScannerPlatform extends PlatformInterface {
   }
 
   /// Dispose of this [MobileScannerPlatform] instance.
-  Future<void> dispose() {
+  Future<void> dispose(int id) {
     throw UnimplementedError('dispose() has not been implemented.');
   }
 }

@@ -90,7 +90,11 @@ class FakeMobileScannerPlatform extends MobileScannerPlatform {
   Stream<double> get zoomScaleStateStream => Stream.value(1);
 
   @override
-  Future<MobileScannerViewAttributes> start(StartOptions startOptions) {
+  Future<MobileScannerViewAttributes> start(
+    int id,
+    StartOptions startOptions, {
+    required VoidCallback onUncover,
+  }) {
     return Future.value(
       const MobileScannerViewAttributes(
         cameraDirection: CameraFacing.back,
@@ -112,7 +116,7 @@ class FakeMobileScannerPlatform extends MobileScannerPlatform {
   }
 
   @override
-  Future<void> dispose() {
+  Future<void> dispose(int id) {
     // No-op.
     return Future.value();
   }
