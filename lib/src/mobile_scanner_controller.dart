@@ -465,6 +465,8 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
     try {
       _setupListeners();
 
+      await MobileScannerPlatform.instance.stop(); // Ensure camera is stopped before starting it again, to reset the state.
+
       final viewAttributes = await MobileScannerPlatform.instance.start(
         hashCode,
         options,
