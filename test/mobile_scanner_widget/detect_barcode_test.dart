@@ -62,7 +62,7 @@ class FakeMobileScannerPlatform extends MobileScannerPlatform {
   Future<MobileScannerViewAttributes> start(
     int id,
     StartOptions startOptions, {
-    required VoidCallback onUncover,
+    required VoidCallback? onUncover,
   }) {
     return Future.value(
       const MobileScannerViewAttributes(

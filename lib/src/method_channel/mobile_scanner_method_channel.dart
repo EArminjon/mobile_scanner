@@ -391,7 +391,7 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   Future<MobileScannerViewAttributes> start(
     int id,
     StartOptions startOptions, {
-    required Future<void> Function() onUncover,
+    required Future<void> Function()? onUncover,
   }) async {
     if (!_pausing && _textureId != null) {
       throw MobileScannerException(
@@ -402,7 +402,9 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
       );
     }
 
-    _instances[id] = onUncover;
+    if (onUncover != null) {
+      _instances[id] = onUncover;
+    }
 
     await _requestCameraPermission();
 

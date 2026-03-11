@@ -371,6 +371,11 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
   /// The [cameraLensType] can be used to specify the camera lens type.
   /// If this is null, this defaults to the [lensType] value.
   ///
+  /// The [saveLastUsedCamera] can be used to specify whether the last used
+  /// camera should be saved. If this is true, the last used camera will be
+  /// saved and used when the camera is started again.
+  /// If this is null, this defaults to save the last used camera.
+  ///
   /// Does nothing if the camera is already running.
   /// Upon calling this method, the necessary camera permission will be
   /// requested.
@@ -380,6 +385,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
   Future<void> start({
     CameraFacing? cameraDirection,
     CameraLensType? cameraLensType,
+    bool saveLastUsedCamera = true,
   }) async {
     if (_isDisposed) {
       throw MobileScannerException(
@@ -464,16 +470,19 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
 
     try {
       _setupListeners();
-
-      await MobileScannerPlatform.instance.stop(); // Ensure camera is stopped before starting it again, to reset the state.
+      // Ensure camera is stopped before starting it again, to reset the state.
+      await MobileScannerPlatform.instance.stop();
 
       final viewAttributes = await MobileScannerPlatform.instance.start(
         hashCode,
         options,
-        onUncover: () async {
-          await stop();
-          await start();
-        },
+        onUncover:
+            saveLastUsedCamera
+                ? () async {
+                  await stop();
+                  await start();
+                }
+                : null,
       );
 
       if (!_isDisposed) {
