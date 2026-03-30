@@ -109,63 +109,26 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
     'dev.steenbakker.mobile_scanner/scanner/event',
   );
 
-  StreamController<DeviceOrientation>? _deviceOrientationStreamController;
-  StreamController<Map<Object?, Object?>>? _eventsStreamController;
-  StreamSubscription<Object?>? _deviceOrientationSubscription;
-  StreamSubscription<Object?>? _eventsSubscription;
+  Stream<DeviceOrientation>? _deviceOrientationStream;
+  Stream<Map<Object?, Object?>>? _eventsStream;
 
   /// Get the event stream of device orientation change events
   /// that come from the [deviceOrientationEventChannel].
   Stream<DeviceOrientation> get deviceOrientationChangedStream {
-    if (_deviceOrientationStreamController == null) {
-      _deviceOrientationStreamController =
-          StreamController<DeviceOrientation>.broadcast();
-      _deviceOrientationSubscription = deviceOrientationEventChannel
-          .receiveBroadcastStream()
-          .cast<String>()
-          .map((orientation) => orientation.parseDeviceOrientation())
-          .listen(
-            (orientation) {
-              if (!(_deviceOrientationStreamController?.isClosed ?? true)) {
-                _deviceOrientationStreamController!.add(orientation);
-              }
-            },
-            onError: (Object error) {
-              if (!(_deviceOrientationStreamController?.isClosed ?? true)) {
-                _deviceOrientationStreamController!.addError(error);
-              }
-            },
-            cancelOnError: false,
-          );
-    }
+    _deviceOrientationStream ??= deviceOrientationEventChannel
+        .receiveBroadcastStream()
+        .cast<String>()
+        .map((orientation) => orientation.parseDeviceOrientation());
 
-    return _deviceOrientationStreamController!.stream;
+    return _deviceOrientationStream!;
   }
 
   /// Get the event stream of barcode events that come from the [eventChannel].
   Stream<Map<Object?, Object?>> get eventsStream {
-    if (_eventsStreamController == null) {
-      _eventsStreamController =
-          StreamController<Map<Object?, Object?>>.broadcast();
-      _eventsSubscription = eventChannel
-          .receiveBroadcastStream()
-          .cast<Map<Object?, Object?>>()
-          .listen(
-            (event) {
-              if (!(_eventsStreamController?.isClosed ?? true)) {
-                _eventsStreamController!.add(event);
-              }
-            },
-            onError: (Object error) {
-              if (!(_eventsStreamController?.isClosed ?? true)) {
-                _eventsStreamController!.addError(error);
-              }
-            },
-            cancelOnError: false,
-          );
-    }
+    _eventsStream ??=
+        eventChannel.receiveBroadcastStream().cast<Map<Object?, Object?>>();
 
-    return _eventsStreamController!.stream;
+    return _eventsStream!;
   }
 
   /// The delegate that handles texture rotation corrections on Android.
@@ -505,20 +468,8 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
     _textureId = null;
     _pausing = false;
     _surfaceProducerDelegate = null;
-
-    await Future.wait(
-      [
-        _eventsSubscription?.cancel(),
-        _deviceOrientationSubscription?.cancel(),
-        _eventsStreamController?.close(),
-        _deviceOrientationStreamController?.close(),
-      ].nonNulls,
-    );
-
-    _eventsSubscription = null;
-    _deviceOrientationSubscription = null;
-    _eventsStreamController = null;
-    _deviceOrientationStreamController = null;
+    _eventsStream = null;
+    _deviceOrientationStream = null;
 
     await methodChannel.invokeMethod<void>(kStopCameraMethodName, {
       'force': force,
