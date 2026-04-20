@@ -102,7 +102,8 @@ abstract class MobileScannerPlatform extends PlatformInterface {
   Future<MobileScannerViewAttributes> start(
     int id,
     StartOptions startOptions, {
-    required Future<void> Function() onUncover,
+    required Future<void> Function() startRequest,
+    required Future<void> Function() stopRequest,
   }) {
     throw UnimplementedError('start() has not been implemented.');
   }

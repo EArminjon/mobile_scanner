@@ -172,7 +172,8 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   AndroidSurfaceProducerDelegate? _surfaceProducerDelegate;
 
   /// Buffer of active camera instances
-  final Map<int, Future<void> Function()> _instances = {};
+  final Map<int, (Future<void> Function() start, Future<void> Function() stop)>
+  _instances = {};
 
   /// The identifier of the current texture.
   int? _textureId;
@@ -391,8 +392,17 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   Future<MobileScannerViewAttributes> start(
     int id,
     StartOptions startOptions, {
-    required Future<void> Function() onUncover,
+    required Future<void> Function() startRequest,
+    required Future<void> Function() stopRequest,
   }) async {
+    for (final instance in _instances.entries) {
+      await instance.value.$2();
+    }
+    _instances[id] = (
+      startRequest,
+      stopRequest,
+    );
+
     if (!_pausing && _textureId != null) {
       throw MobileScannerException(
         errorCode: MobileScannerErrorCode.controllerAlreadyInitialized,
@@ -401,8 +411,6 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
         ),
       );
     }
-
-    _instances[id] = onUncover;
 
     await _requestCameraPermission();
 
@@ -575,6 +583,9 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   Future<void> dispose(int id) async {
     _instances.remove(id);
 
+    await updateScanWindow(null);
+    await stop();
+
     /// On native side, only one camera instance can be active, if we want
     /// to dispose the current camera and an other one is already up, we should
     /// not try to impact the native camera once again.
@@ -583,11 +594,8 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
     /// (stop & start) to resume the camera instance.
     if (_instances.isNotEmpty) {
       final last = _instances.entries.last;
-      await last.value();
+      await last.value.$1();
       return;
     }
-
-    await updateScanWindow(null);
-    await stop();
   }
 }

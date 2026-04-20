@@ -288,7 +288,8 @@ class MobileScannerWeb extends MobileScannerPlatform {
   Future<MobileScannerViewAttributes> start(
     int id,
     StartOptions startOptions, {
-    required VoidCallback onUncover,
+    required Future<void> Function() startRequest,
+    required Future<void> Function() stopRequest,
   }) async {
     if (_barcodeReader != null) {
       if (_barcodeReader!.paused ?? false) {

@@ -150,6 +150,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
   StreamSubscription<DeviceOrientation>? _deviceOrientationSubscription;
 
   bool _isDisposed = false;
+
   // This completer keeps track of whether the MobileScanner widget,
   // that is attached to this controller,
   // called its `initState()` lifecycle method.
@@ -463,16 +464,25 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
     );
 
     try {
-      _setupListeners();
-
       final viewAttributes = await MobileScannerPlatform.instance.start(
         hashCode,
         options,
-        onUncover: () async {
-          await stop();
-          await start();
+        startRequest: () async {
+          // Called on next frame to ensure no dispose will be scheduled
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (_isDisposed) {
+              return;
+            }
+            await start();
+          });
         },
+        stopRequest: stop,
       );
+
+      // Setup listeners after, start() has internally called stop() on
+      // previously running cameras, which closes the old event streams.
+      // This ensures the new subscriptions are attached to fresh streams.
+      _setupListeners();
 
       if (!_isDisposed) {
         value = value.copyWith(
